@@ -10,4 +10,22 @@
     <welcome-file>app.html</welcome-file>
   </welcome-file-list>
 
+  <!-- de-water-talks file uploader service -->
+  <servlet>
+    <servlet-name>
+      FileUploadByWaterTalks
+    </servlet-name>
+    <servlet-class>
+      com.moodle.server.WaterTalkUploadService
+    </servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>
+      FileUploadByWaterTalks
+    </servlet-name>
+    <url-pattern>
+      /FileUploadByWaterTalks
+    </url-pattern>
+  </servlet-mapping>
+
 </web-app>
