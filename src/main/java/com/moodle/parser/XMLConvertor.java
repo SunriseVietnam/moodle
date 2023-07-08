@@ -9,15 +9,14 @@ import java.util.*;
 public class XMLConvertor {
 
     /**
-     * Собирает в questionsInfo инфу про вопрос в формате List<Map<String, Map<String, ArrayList<String>>>>
-     * (Тип вопроса (Формулирова, Список ответов (где правильные отметка (-- Правильный ответ)))
+     * Собирает в questionsInfo инфу про вопрос в формате List<Question>
      *
      * @param inputXMLFile - входной файл moodleXML
      * @return
      */
-    public static List<Map<String, Map<String, ArrayList<String>>>> collectXMLData(String inputXMLFile) {
+    public static List<Question> collectXMLData(String inputXMLFile) {
 
-        List<Map<String, Map<String, ArrayList<String>>>> questionsInfo = new ArrayList<>(); // <Тип вопроса, <Формулировка, ответы>>
+        List<Question> questionsInfo = new ArrayList<>();
 
         try {
             Document document = XMLParser.parse(inputXMLFile);
@@ -33,6 +32,7 @@ public class XMLConvertor {
 
                     Element questionElement = (Element) question;
                     String questionType = questionElement.getAttribute("type");
+                    GWT.log(questionType);
                     String questionText = "";
                     ArrayList<String> answers = new ArrayList<>();
 
@@ -78,17 +78,26 @@ public class XMLConvertor {
                             }
                         }
                     }
-                    Map<String, Map<String, ArrayList<String>>> questions = new HashMap<>();
-                    questions.put(questionType, normalizeXMLData(questionType, answers, questionText));
-                    questionsInfo.add(questions);
+                    Question qstn = normalizeXMLData(questionType, answers, questionText);
+                    boolean isDuplicate = false;
+                    for(Question q: questionsInfo){
+                        if(q.getText().equals(qstn.getText())){
+                            isDuplicate = true;
+                            break;
+                        }
+                    }
+                    if(!isDuplicate &&
+                            !qstn.getText().equals("") &&
+                            !qstn.getType().equals("") &&
+                            qstn.getAnswers()!=null) {
+                        questionsInfo.add(qstn);
+                    }
                 }
             }
-
         } catch (DOMException e) {
             Window.alert("Could not parse XML document.");
             throw new RuntimeException(e);
         }
-        Window.alert(questionsInfo.toString());
         return questionsInfo;
     }
 
@@ -97,17 +106,17 @@ public class XMLConvertor {
      * @param questionType - тип вопроса
      * @param answers - ответы
      * @param questionText - формулировка
-     * @return Map<String, ArrayList<String>> - Нормализованные (формулировка, список ответов).
+     * @return Question
      */
-    public static Map<String, ArrayList<String>> normalizeXMLData(String questionType, ArrayList<String> answers, String questionText) {
-        Map<String, ArrayList<String>> normalizedAnswers = new HashMap<>(){};
+    public static Question normalizeXMLData(String questionType, ArrayList<String> answers, String questionText) {
+        Question normalizedAnswers = new Question();
         ArrayList<String> newAnswers = new ArrayList<>();
         StringBuilder answer = new StringBuilder();
         String newQuestionText = questionText;
-        int count = 0;
         if (newQuestionText.endsWith("]]>")) {
             newQuestionText = newQuestionText.substring(0, newQuestionText.length() - 3);
         }
+        int count = 0;
 
         if (!questionType.equals("essay")) {
             for (int i = 0; i < answers.toArray().length; i++) {
@@ -140,12 +149,11 @@ public class XMLConvertor {
                     }
                 }
                 newAnswers.add(answer.toString());
-                normalizedAnswers.put(newQuestionText, newAnswers);
+                normalizedAnswers = new Question(newQuestionText,questionType, newAnswers);
             }
         } else {
-            normalizedAnswers.put(newQuestionText, answers);
+            normalizedAnswers = new Question(newQuestionText, questionType, answers);
         }
-        GWT.log("Вопрос: " + newQuestionText + "\nОтветы:" + newAnswers);
         return normalizedAnswers;
     }
 }

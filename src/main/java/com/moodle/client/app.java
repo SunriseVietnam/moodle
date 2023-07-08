@@ -2,18 +2,18 @@ package com.moodle.client;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.dom.client.Document;
+import com.google.gwt.dom.client.Style;
 import com.google.gwt.event.dom.client.ChangeEvent;
-import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.resources.client.ClientBundle;
 import com.google.gwt.resources.client.CssResource;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.FlowPanel;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
+import com.moodle.parser.Question;
 import com.moodle.parser.XMLConvertor;
 import org.vectomatic.file.*;
 import org.vectomatic.file.events.ErrorEvent;
@@ -38,7 +38,7 @@ public class app implements EntryPoint {
   @UiField
   FileUploadExt fileUpload;
   @UiField
-  Button convertBtn;
+  HTML convertedText;
   @UiField(provided=true)
   static AppBundle bundle = GWT.create(AppBundle.class);
   protected boolean useTypedArrays;
@@ -49,12 +49,9 @@ public class app implements EntryPoint {
   private static AppBinder binder = GWT.create(AppBinder.class);
 
   interface AppCss extends CssResource {
-    public String imagePanel();
     public String fileUpload();
     @ClassName("txt")
     public String text();
-
-    String convert();
 
     @ClassName("input-file")
     String inputFile();
@@ -72,8 +69,9 @@ public class app implements EntryPoint {
     // Create UI main elements
     bundle.css().ensureInjected();
     FlowPanel flowPanel = binder.createAndBindUi(this);
-    Document document = Document.get();
     RootLayoutPanel.get().add(flowPanel);
+
+    convertedText.getElement().getParentElement().getParentElement().getStyle().setOverflow(Style.Overflow.VISIBLE);
 
     reader = new FileReader();
     reader.addLoadEndHandler(new LoadEndHandler() {
@@ -88,14 +86,18 @@ public class app implements EntryPoint {
           if (readQueue.size() > 0) {
             File file = readQueue.get(0);
             try {
-              //imagePanel.add(createThumbnail(file));
-              GWT.log("onLoadEnd");
               //Вывод текста файла
               moodleText.append(reader.getStringResult());
-              //GWT.log(reader.getStringResult());
             } finally {
-              XMLConvertor.collectXMLData(String.valueOf(moodleText));
-           //   GWT.log(moodleText.toString());
+              List<Question> parser = XMLConvertor.collectXMLData(String.valueOf(moodleText)); //Парсер
+              StringBuilder parsedHTML = new StringBuilder();
+              Integer i = 0;
+              for (Question question: parser) {
+                i++;
+                parsedHTML.append("<p><b>Вопрос №").append(i).append(": ").append(question.getText()).append("</b></p>").append("<p><i>Тип вопроса: ").append(question.getType()).append("</i></p>");
+                parsedHTML.append(question.getParsedAnswer());
+              }
+              convertedText.setHTML(parsedHTML.toString());
               readQueue.remove(0);
               readNextFile();
             }
@@ -138,7 +140,6 @@ public class app implements EntryPoint {
    * The file to process
    */
   private void processFiles(FileList files) {
-    GWT.log("length=" + files.getLength());
     for (File file : files) {
       readQueue.add(file);
     }
@@ -156,22 +157,6 @@ public class app implements EntryPoint {
       try {
         if ("image/svg+xml".equals(type)) {
           reader.readAsText(file);
-        } else if (type.startsWith("image/png")) {
-          // Do not use the FileReader for PNG.
-          // Take advantage of the fact the browser can
-          // provide a directly usable blob:// URL
-          GWT.log("readNextFile");
-          //imagePanel.add(createThumbnail(file));
-          readQueue.remove(0);
-          readNextFile();
-        } else if (type.startsWith("image/")) {
-          // For other image types (GIF, JPEG), load them
-          // as typed arrays
-          if (useTypedArrays) {
-            reader.readAsArrayBuffer(file);
-          } else {
-            reader.readAsBinaryString(file);
-          }
         } else if (type.startsWith("text/")) {
           reader.readAsText(file);
         }
@@ -185,16 +170,8 @@ public class app implements EntryPoint {
     }
   }
 
-  @UiHandler("convertBtn")
-  public void convert(ClickEvent event) {
-    //customUpload.click();
-    GWT.log("convert");
-  }
   @UiHandler("fileUpload")
   public void uploadFile(ChangeEvent event) {
-    GWT.log("uploadFile");
     processFiles(fileUpload.getFiles());
   }
-
-
 }

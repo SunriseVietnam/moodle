@@ -3,11 +3,10 @@
              xmlns:g='urn:import:com.google.gwt.user.client.ui'
              xmlns:f='urn:import:org.vectomatic.file'>
     <ui:with field='bundle' type='com.moodle.client.app.AppBundle' />
-    <g:FlowPanel>
-        <g:Label>Выберете файл формата MoodleXML для конвертации</g:Label>
-        <f:FileUploadExt ui:field="fileUpload" />
-        <g:Label>Нажмите, чтобы получить файл формата docx</g:Label>
-        <g:Button text="Конвертировать" ui:field="convertBtn" />
-        <g:FlowPanel ui:field="imagePanel"  styleName="{bundle.css.imagePanel}" />
+    <g:FlowPanel height="100%">
+        <g:Label>Выберете файл формата MoodleXML для конвертации.</g:Label>
+        <f:FileUploadExt ui:field="fileUpload"/>
+        <g:Label>После выбора файла скопируйте текст ниже и вставьте в его в Word.</g:Label>
+        <g:HTML ui:field="convertedText"/>
     </g:FlowPanel>
 </ui:UiBinder>
